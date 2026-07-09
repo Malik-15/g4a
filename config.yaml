@@ -1,15 +1,20 @@
-website:
-  url: "https://malik-15.github.io/g4a/"
-
-parser:
-  extract:
-    - title
-    - headings
-    - paragraphs
-    - links
+ga4:
+  measurement_id: "G-4RQD2S6BLZ"
+  api_secret: "hta9FCcrRsm6AIGTmxWPaA"
 
 simulation:
-  generate_samples: 50
+  delay_seconds:
+    min: 2
+    max: 8
 
-output:
-  file: "g4a_parsed_data.json"
+  events:
+    - page_view
+    - scroll
+    - click
+    - login
+    - generate_ai_response
+    - file_upload
+    - search
+
+website:
+  url: "https://malik-15.github.io/g4a/"
