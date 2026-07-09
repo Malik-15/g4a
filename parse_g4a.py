@@ -1,163 +1,114 @@
 import requests
-from bs4 import BeautifulSoup
 import yaml
-import json
+import uuid
 import random
+import time
 from datetime import datetime
 
 
-# Load configuration
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
+# Load config
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 
-url = config["website"]["url"]
+measurement_id = config["ga4"]["measurement_id"]
+api_secret = config["ga4"]["api_secret"]
 
-output_file = config["output"]["file"]
+website_url = config["website"]["url"]
 
-samples = config["simulation"]["generate_samples"]
+events = config["simulation"]["events"]
 
-
-# -------------------------
-# Download Website
-# -------------------------
-
-response = requests.get(url)
-
-if response.status_code != 200:
-    raise Exception(
-        f"Website loading failed: {response.status_code}"
-    )
+delay_min = config["simulation"]["delay_seconds"]["min"]
+delay_max = config["simulation"]["delay_seconds"]["max"]
 
 
-html = response.text
-
-
-# -------------------------
-# Parse HTML
-# -------------------------
-
-soup = BeautifulSoup(
-    html,
-    "html.parser"
+GA4_URL = (
+    "https://www.google-analytics.com/mp/collect"
+    f"?measurement_id={measurement_id}"
+    f"&api_secret={api_secret}"
 )
 
 
-# Title
 
-title = soup.title.text.strip() if soup.title else None
+def send_event():
 
+    client_id = str(uuid.uuid4())
 
-# Headings
-
-headings = []
-
-for tag in soup.find_all(["h1", "h2", "h3"]):
-
-    headings.append(
-        tag.get_text(strip=True)
-    )
+    event_name = random.choice(events)
 
 
-# Paragraphs
+    payload = {
 
-paragraphs = []
+        "client_id": client_id,
 
-for p in soup.find_all("p"):
+        "events": [
 
-    text = p.get_text(strip=True)
+            {
 
-    if text:
-        paragraphs.append(text)
+                "name": event_name,
 
+                "params": {
 
+                    "page_location": website_url,
 
-# Links
+                    "page_title": "G4A Learning Dashboard",
 
-links = []
+                    "engagement_time_msec":
+                        random.randint(1000,15000),
 
-for a in soup.find_all("a", href=True):
+                    "user_type":
+                        random.choice(
+                            [
+                                "student",
+                                "developer",
+                                "engineer"
+                            ]
+                        ),
 
-    links.append(
-        {
-            "text": a.get_text(strip=True),
-            "url": a["href"]
-        }
-    )
+                    "timestamp":
+                        datetime.utcnow().isoformat()
 
+                }
 
+            }
 
-# -------------------------
-# Generate Simulation Data
-# -------------------------
+        ]
 
-simulation = []
-
-
-for i in range(samples):
-
-    record = {
-
-        "id": i + 1,
-
-        "timestamp":
-        datetime.utcnow().isoformat(),
-
-        "temperature":
-        round(random.uniform(20,80),2),
-
-        "pressure":
-        round(random.uniform(950,1050),2),
-
-        "system_status":
-        random.choice(
-            [
-                "Normal",
-                "Warning",
-                "Critical"
-            ]
-        )
     }
 
 
-    simulation.append(record)
-
-
-
-# -------------------------
-# Save Result
-# -------------------------
-
-output = {
-
-    "website":
-    {
-        "url": url,
-        "title": title
-    },
-
-    "content":
-    {
-        "headings": headings,
-        "paragraphs": paragraphs,
-        "links": links
-    },
-
-    "simulation_data":
-    simulation
-}
-
-
-
-with open(output_file,"w",encoding="utf-8") as file:
-
-    json.dump(
-        output,
-        file,
-        indent=4,
-        ensure_ascii=False
+    response = requests.post(
+        GA4_URL,
+        json=payload
     )
 
 
-print("Parsing completed")
-print(f"Saved to {output_file}")
+    if response.status_code == 204:
+
+        print(
+            "✓ Sent:",
+            event_name,
+            client_id[:8]
+        )
+
+    else:
+
+        print(
+            "GA4 Error:",
+            response.status_code,
+            response.text
+        )
+
+
+
+
+while True:
+
+    send_event()
+
+    wait = random.randint(
+        delay_min,
+        delay_max
+    )
+
+    time.sleep(wait)
