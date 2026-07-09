@@ -1,0 +1,15 @@
+website:
+  url: "https://malik-15.github.io/g4a/"
+
+parser:
+  extract:
+    - title
+    - headings
+    - paragraphs
+    - links
+
+simulation:
+  generate_samples: 50
+
+output:
+  file: "g4a_parsed_data.json"
